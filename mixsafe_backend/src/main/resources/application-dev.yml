@@ -1,0 +1,18 @@
+# application-dev.yml
+spring:
+  datasource:
+    url: jdbc:mysql://<dev 배포 ip>:3306/mixsafe_dev?serverTimezone=Asia/Seoul&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+    username: mixsafe_dev
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update      # dev에서는 테이블 구조 자동 반영 (편의)
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+
+server:
+  port: 8080
