@@ -2,8 +2,8 @@
 spring:
   application:
     name: mixsafe
-  profiles:
-    active: local
+#  profiles:
+#    active: local
   jpa:
     open-in-view: false
     properties:
