@@ -10,6 +10,7 @@ import lombok.Setter;
 
 public class AiResponseDto {
 
-    private
+    @Schema(description = "ai 분석 결과")
+    private String Text;
 
 }
