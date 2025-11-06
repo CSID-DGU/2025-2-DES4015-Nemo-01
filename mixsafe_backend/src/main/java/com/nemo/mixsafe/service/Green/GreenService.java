@@ -1,0 +1,226 @@
+package com.nemo.mixsafe.service.Green;
+
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.nemo.mixsafe.domain.Ingredient;
+import com.nemo.mixsafe.domain.Product;
+import com.nemo.mixsafe.dto.Client.MixRequestDto;
+import com.nemo.mixsafe.dto.Green.*;
+import com.nemo.mixsafe.exception.GreenApiErrorCode;
+import com.nemo.mixsafe.exception.GreenApiException;
+import com.nemo.mixsafe.repository.IngredientRepository;
+import com.nemo.mixsafe.repository.ProductRepository;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class GreenService {
+
+    private final RestTemplate restTemplate;
+    private final ProductRepository productRepository;
+    private final IngredientRepository ingredientRepository;
+    private final XmlMapper xmlMapper = new XmlMapper();
+
+    @Value("${green.api.base-url}")
+    private String baseUrl;
+
+    @Value("${green.api.auth-key}")
+    private String authKey;
+
+    @Transactional
+    public String getGreenResult(MixRequestDto requestDto) {
+        try {
+
+            // 1단계: API 3번으로 제품 목록 조회
+            List<Green3Row> productList = fetchProductList(searchText);
+
+            if (productList == null || productList.isEmpty()) {
+                return "검색 결과가 없습니다.";
+            }
+
+            int newProductCount = 0;
+            int ingredientCount = 0;
+
+            // 2단계: 각 제품 처리
+            for (Green3Row greenProduct : productList) {
+                String prdtMstrNo = greenProduct.getPrdtMstrNo();
+                String prdtarmCd = greenProduct.getPrdtarm(); // 제품군 코드
+
+                // 기존 제품 확인 또는 생성
+                Product product = productRepository.findByPrdtMstrNo(prdtMstrNo)
+                        .orElseGet(() -> {
+                            Product newProduct = Product.builder()
+                                    .productName(greenProduct.getPrdtnmKor())
+                                    .prdtMstrNo(prdtMstrNo)
+                                    .prdtarmCd(prdtarmCd)
+                                    .isDanger(false) // 기본값, 나중에 성분 분석으로 업데이트
+                                    .build();
+                            productRepository.save(newProduct);
+                            log.info("새 제품 저장: {} ({})", newProduct.getProductName(), prdtMstrNo);
+                            return newProduct;
+                        });
+
+                if (product.getProductId() != null) {
+                    newProductCount++;
+                }
+
+                // 3단계: API 5번으로 해당 제품의 성분 조회
+                List<Green5Row> ingredients = fetchProductIngredients(prdtMstrNo);
+
+                if (ingredients != null && !ingredients.isEmpty()) {
+                    for (Green5Row greenIngredient : ingredients) {
+                        String casNo = greenIngredient.getCasNo();
+
+                        if (casNo != null && !casNo.trim().isEmpty()) {
+                            // 중복 체크: 같은 제품의 같은 CAS 번호
+                            boolean exists = ingredientRepository
+                                    .existsByProductAndCasNo(product, casNo);
+
+                            if (!exists) {
+                                Ingredient ingredient = new Ingredient();
+                                ingredient.setCasNo(casNo);
+                                ingredient.setProduct(product);
+                                ingredientRepository.save(ingredient);
+                                ingredientCount++;
+
+                                log.debug("성분 저장: {} - {}",
+                                        greenIngredient.getBiMttrnmKor(), casNo);
+                            }
+                        }
+                    }
+
+                    // 위험 성분 체크 및 업데이트
+                    boolean hasDanger = checkDangerousIngredients(ingredients);
+                    product.setIsDanger(hasDanger);
+                    productRepository.save(product);
+                }
+            }
+
+            String result = String.format(
+                    "처리 완료 - 제품: %d개, 성분: %d개 저장됨",
+                    newProductCount,
+                    ingredientCount
+            );
+            log.info(result);
+            return result;
+
+        } catch (Exception e) {
+            log.error("초록누리 API 처리 중 오류", e);
+            throw new RuntimeException("데이터 처리 중 오류 발생: " + e.getMessage(), e);
+        }
+    }
+
+    // 3번: 생활화학제품 목록 조회
+    private MstrNoDTO fetchProductList(MixRequestDto requestDto) {
+
+        Long id1 = requestDto.getProduct1Id();
+        Product product1 = productRepository.findById(id1)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id1));
+        Long id2 = requestDto.getProduct2Id();
+        Product product2 = productRepository.findById(id2)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id2));
+
+        try {
+            String url1 = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                    .queryParam("ServiceName", "chmstryProductList")
+                    .queryParam("AuthKey", authKey)
+                    .queryParam("prdtarmCd", product1.getPrdtarmCd()) // 01: 위해우려제품
+                    .queryParam("prdtnmKor", product1.getProductName())
+                    .build()
+                    .toUriString();
+
+            String url2 = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                    .queryParam("ServiceName", "chmstryProductList")
+                    .queryParam("AuthKey", authKey)
+                    .queryParam("prdtarmCd", product2.getPrdtarmCd()) // 01: 위해우려제품
+                    .queryParam("prdtnmKor", product2.getProductName())
+                    .build()
+                    .toUriString();
+
+            String xmlResponse1 = restTemplate.getForObject(url1, String.class);
+            String xmlResponse2 = restTemplate.getForObject(url2, String.class);
+            Green3ResponseDto response1 = xmlMapper.readValue(xmlResponse1, Green3ResponseDto.class);
+            Green3ResponseDto response2 = xmlMapper.readValue(xmlResponse2, Green3ResponseDto.class);
+
+            String mstrNo1 = response1.getRows().get(0).getPrdtMstrNo();
+            product1.setPrdtMstrNo(response1.getRows().get(0).getPrdtMstrNo());
+
+            String mstrNo2 = response1.getRows().get(0).getPrdtMstrNo();
+            product2.setPrdtMstrNo(response2.getRows().get(0).getPrdtMstrNo());
+
+            GreenApiErrorCode errorCode1 = GreenApiErrorCode.fromCode(response1.getResultcode());
+            GreenApiErrorCode errorCode2 = GreenApiErrorCode.fromCode(response2.getResultcode());
+
+            if (!errorCode1.isSuccess()) {
+                throw new GreenApiException(errorCode1);
+            }
+            if (!errorCode2.isSuccess()) {
+                throw new GreenApiException(errorCode2);
+            }
+
+            return MstrNoDTO.builder()
+                    .prdtMstrNo1(mstrNo1)
+                    .prdtMstrNo2(mstrNo2)
+                    .build();
+
+        } catch (GreenApiException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("API 3번 호출 실패", e);
+            throw new GreenApiException(GreenApiErrorCode.ERROR99999);
+        }
+    }
+
+    // 5번: 제품 성분 목록 조회
+    private List<Green5Row> fetchProductIngredients(MstrNoDTO mstrNoDTO) {
+
+        try {
+            String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                    .queryParam("ServiceName", "chmstryProductCntnrIndtList")
+                    .queryParam("AuthKey", authKey)
+                    .queryParam("prdtMstrNo", prdtMstrNo)
+                    .queryParam("PageNum", "1")
+                    .queryParam("PageCount", "100")
+                    .build()
+                    .toUriString();
+
+            log.debug("API 5번 호출 URL: {}", url);
+
+            String xmlResponse = restTemplate.getForObject(url, String.class);
+            Green5ResponseDto response = xmlMapper.readValue(xmlResponse, Green5ResponseDto.class);
+
+            if ("2.1 참고".equals(response.getResultcode())) {
+                log.info("API 5번 성공: {}건 조회됨 (제품: {})",
+                        response.getCount(), prdtMstrNo);
+                return response.getRows();
+            }
+
+            log.warn("API 5번 비정상 응답 코드: {} (제품: {})",
+                    response.getResultcode(), prdtMstrNo);
+            return List.of();
+
+        } catch (Exception e) {
+            log.error("API 5번 호출 실패 - 제품번호: {}", prdtMstrNo, e);
+            return List.of();
+        }
+    }
+
+    // 위험 성분 체크 (GHS 유해성 문구가 있는지 확인)
+    private boolean checkDangerousIngredients(List<Green5Row> ingredients) {
+        return ingredients.stream()
+                .anyMatch(ing ->
+                        (ing.getGciHrmflnsriskwords() != null &&
+                                !ing.getGciHrmflnsriskwords().trim().isEmpty())
+                );
+    }
+}

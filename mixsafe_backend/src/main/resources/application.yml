@@ -22,6 +22,7 @@ springdoc:
     operationsSorter: method
     tagsSorter: alpha
 
-mixsafe:
-  ecolife:
-    base-url: https://ecolife.mcee.go.kr/openapi/ServiceSvl
+green:
+  api:
+    base-url: https://ecolife.mcee.go.kr/openapi/TestSv
+    auth-key: ${ECOLIFE_AUTH_KEY}
