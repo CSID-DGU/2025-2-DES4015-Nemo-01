@@ -21,3 +21,7 @@ springdoc:
     path: /swagger-ui
     operationsSorter: method
     tagsSorter: alpha
+
+mixsafe:
+  ecolife:
+    base-url: https://ecolife.mcee.go.kr/openapi/ServiceSvl
