@@ -21,3 +21,8 @@ springdoc:
     path: /swagger-ui
     operationsSorter: method
     tagsSorter: alpha
+
+green:
+  api:
+    base-url: https://ecolife.mcee.go.kr/openapi/TestSv
+    auth-key: ${ECOLIFE_AUTH_KEY}
