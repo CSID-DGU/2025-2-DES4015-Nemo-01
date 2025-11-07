@@ -39,86 +39,8 @@ public class GreenService {
     private String authKey;
 
     @Transactional
-    public String getGreenResult(MixRequestDto requestDto) {
-        try {
+    public void getGreenResult(MixRequestDto requestDto) {
 
-            // 1단계: API 3번으로 제품 목록 조회
-            List<Green3Row> productList = fetchProductList(searchText);
-
-            if (productList == null || productList.isEmpty()) {
-                return "검색 결과가 없습니다.";
-            }
-
-            int newProductCount = 0;
-            int ingredientCount = 0;
-
-            // 2단계: 각 제품 처리
-            for (Green3Row greenProduct : productList) {
-                String prdtMstrNo = greenProduct.getPrdtMstrNo();
-                String prdtarmCd = greenProduct.getPrdtarm(); // 제품군 코드
-
-                // 기존 제품 확인 또는 생성
-                Product product = productRepository.findByPrdtMstrNo(prdtMstrNo)
-                        .orElseGet(() -> {
-                            Product newProduct = Product.builder()
-                                    .productName(greenProduct.getPrdtnmKor())
-                                    .prdtMstrNo(prdtMstrNo)
-                                    .prdtarmCd(prdtarmCd)
-                                    .isDanger(false) // 기본값, 나중에 성분 분석으로 업데이트
-                                    .build();
-                            productRepository.save(newProduct);
-                            log.info("새 제품 저장: {} ({})", newProduct.getProductName(), prdtMstrNo);
-                            return newProduct;
-                        });
-
-                if (product.getProductId() != null) {
-                    newProductCount++;
-                }
-
-                // 3단계: API 5번으로 해당 제품의 성분 조회
-                List<Green5Row> ingredients = fetchProductIngredients(prdtMstrNo);
-
-                if (ingredients != null && !ingredients.isEmpty()) {
-                    for (Green5Row greenIngredient : ingredients) {
-                        String casNo = greenIngredient.getCasNo();
-
-                        if (casNo != null && !casNo.trim().isEmpty()) {
-                            // 중복 체크: 같은 제품의 같은 CAS 번호
-                            boolean exists = ingredientRepository
-                                    .existsByProductAndCasNo(product, casNo);
-
-                            if (!exists) {
-                                Ingredient ingredient = new Ingredient();
-                                ingredient.setCasNo(casNo);
-                                ingredient.setProduct(product);
-                                ingredientRepository.save(ingredient);
-                                ingredientCount++;
-
-                                log.debug("성분 저장: {} - {}",
-                                        greenIngredient.getBiMttrnmKor(), casNo);
-                            }
-                        }
-                    }
-
-                    // 위험 성분 체크 및 업데이트
-                    boolean hasDanger = checkDangerousIngredients(ingredients);
-                    product.setIsDanger(hasDanger);
-                    productRepository.save(product);
-                }
-            }
-
-            String result = String.format(
-                    "처리 완료 - 제품: %d개, 성분: %d개 저장됨",
-                    newProductCount,
-                    ingredientCount
-            );
-            log.info(result);
-            return result;
-
-        } catch (Exception e) {
-            log.error("초록누리 API 처리 중 오류", e);
-            throw new RuntimeException("데이터 처리 중 오류 발생: " + e.getMessage(), e);
-        }
     }
 
     // 3번: 생활화학제품 목록 조회
