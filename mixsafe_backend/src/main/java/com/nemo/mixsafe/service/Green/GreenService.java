@@ -40,7 +40,8 @@ public class GreenService {
 
     @Transactional
     public void getGreenResult(MixRequestDto requestDto) {
-
+        MstrNoDTO mstrNoDTO = fetchProductList(requestDto);
+        fetchProductIngredients(mstrNoDTO);
     }
 
     // 3번: 생활화학제품 목록 조회
@@ -75,11 +76,6 @@ public class GreenService {
             Green3ResponseDto response1 = xmlMapper.readValue(xmlResponse1, Green3ResponseDto.class);
             Green3ResponseDto response2 = xmlMapper.readValue(xmlResponse2, Green3ResponseDto.class);
 
-            String mstrNo1 = response1.getRows().get(0).getPrdtMstrNo();
-            product1.setPrdtMstrNo(response1.getRows().get(0).getPrdtMstrNo());
-
-            String mstrNo2 = response1.getRows().get(0).getPrdtMstrNo();
-            product2.setPrdtMstrNo(response2.getRows().get(0).getPrdtMstrNo());
 
             GreenApiErrorCode errorCode1 = GreenApiErrorCode.fromCode(response1.getResultcode());
             GreenApiErrorCode errorCode2 = GreenApiErrorCode.fromCode(response2.getResultcode());
@@ -90,6 +86,15 @@ public class GreenService {
             if (!errorCode2.isSuccess()) {
                 throw new GreenApiException(errorCode2);
             }
+
+            String mstrNo1 = response1.getRows().get(0).getPrdtMstrNo();
+            String mstrNo2 = response1.getRows().get(0).getPrdtMstrNo();
+
+            product1.setPrdtMstrNo(mstrNo1);
+            product2.setPrdtMstrNo(mstrNo2);
+            productRepository.save(product1);
+            productRepository.save(product2);
+
 
             return MstrNoDTO.builder()
                     .productId1(id1)
