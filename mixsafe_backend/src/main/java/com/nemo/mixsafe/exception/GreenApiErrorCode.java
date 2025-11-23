@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Getter
-@RequiredArgsConstructor
 public enum GreenApiErrorCode {
 
     ERROR00001("ERROR00001", "서비스명이 설정되지 않음"),

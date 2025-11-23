@@ -1,12 +1,10 @@
 package com.nemo.mixsafe.controller.Client;
 
-import com.nemo.mixsafe.dto.Client.AiResultResponseDto;
-import com.nemo.mixsafe.dto.Client.MixRequestDto;
-import com.nemo.mixsafe.dto.Client.SearchRequestDto;
-import com.nemo.mixsafe.dto.Client.SearchResponseDto;
+import com.nemo.mixsafe.dto.Client.*;
 import com.nemo.mixsafe.service.Client.SearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api")
@@ -24,4 +22,10 @@ public class SearchController {
     public void mixProductResult(@RequestBody MixRequestDto requestDto){
 
     }
+
+    @PostMapping("/search/ocr-image")
+    public SearchResponseDto searchProductByOcrImage(@RequestBody OcrImageRequestDto dto) throws IOException {
+        return searchService.searchProductByOcrImage(dto);
+    }
+
 }
