@@ -7,13 +7,13 @@ import lombok.Setter;
 
 @Getter
 @Builder
-@Schema(description = "검색 후 제품 반환 DTO")
+@Schema(description = "검색 결과로 반환되는 제품 정보 DTO")
 public class SearchResponseDto {
 
     @Schema(description = "제품명")
     private String productName;
 
-    @Schema(description = "제품 아이디")
+    @Schema(description = "제품 아이디", example = "1")
     private Long productId;
 
 }
