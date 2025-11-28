@@ -41,38 +41,50 @@ public class GreenService {
     @Transactional
     public void getGreenResult(MixRequestDto requestDto) {
 
-        MstrNoDTO mstrNoDTO= fetchProductList(requestDto);
-        fetchProductIngredients(mstrNoDTO);
-    }
-
-    // 3번: 생활화학제품 목록 조회
-    private MstrNoDTO fetchProductList(MixRequestDto requestDto) {
-
         Long id1 = requestDto.getProduct1Id();
+        Long id2 = requestDto.getProduct2Id();
+
+        // 제품 조회
         Product product1 = productRepository.findById(id1)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id1));
-        Long id2 = requestDto.getProduct2Id();
         Product product2 = productRepository.findById(id2)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id2));
 
-
-        if (product1.getPrdMstrNo() == null) {
-            getMstrNo(product1);
-        }
-        if(product2.getPrdMstrNo() == null){
-            getMstrNo(product2);
-        }
-
-        return MstrNoDTO.builder()
-                .productId1(id1)
-                .productId2(id2)
-                .prdMstrNo1(product1.getPrdMstrNo())
-                .prdMstrNo2(product2.getPrdMstrNo())
-                .build();
-
+        // 각각 처리
+        fetchAndSaveProductIngredients(product1);
+        fetchAndSaveProductIngredients(product2);
     }
 
-    private String getMstrNo(Product product) {
+    @Transactional
+    public void fetchAndSaveProductIngredients(Product product) {
+        try {
+            log.info("제품 '{}' 초록누리 API 조회 시작", product.getProductName());
+
+            // 1. 제품 마스터 번호가 없으면 먼저 조회
+            if (product.getPrdMstrNo() == null || product.getPrdMstrNo().isEmpty()) {
+                String prdMstrNo = fetchProductMasterNumber(product);
+                product.setPrdMstrNo(prdMstrNo);
+                productRepository.save(product);
+                log.info("제품 마스터 번호 저장 완료: {}", prdMstrNo);
+            }
+
+            // 2. 성분 정보 조회 및 저장
+            fetchProductIngredients(product);
+
+            log.info("제품 '{}' 성분 저장 완료", product.getProductName());
+
+        } catch (GreenApiException e) {
+            log.error("초록누리 API 오류: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("제품 성분 조회 중 오류 발생", e);
+            throw new RuntimeException("제품 성분 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    // 3번: 생활화학제품 목록 조회
+    private String fetchProductMasterNumber(Product product) {
+
         try{
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
                     .queryParam("ServiceName", "chmstryProductList")
@@ -82,26 +94,26 @@ public class GreenService {
                     .build()
                     .toUriString();
 
-            String xmlResponse1 = restTemplate.getForObject(url, String.class);
+            String xmlResponse = restTemplate.getForObject(url, String.class);
 
-            Green3ResponseDto response1 = xmlMapper.readValue(xmlResponse1, Green3ResponseDto.class);
+            Green3ResponseDto response = xmlMapper.readValue(xmlResponse, Green3ResponseDto.class);
 
-            GreenApiErrorCode errorCode = GreenApiErrorCode.fromCode(response1.getResultcode());
+            GreenApiErrorCode errorCode = GreenApiErrorCode.fromCode(response.getResultcode());
             if (!errorCode.isSuccess()) {
                 throw new GreenApiException(errorCode);
             }
 
-            String mstrNo = response1.getRows().get(0).getPrdtMstrNo();
+            if (response.getRows() == null || response.getRows().isEmpty()) {
+                throw new RuntimeException("제품 정보를 찾을 수 없습니다: " + product.getProductName());
+            }
 
-            product.setPrdMstrNo(mstrNo);
-            productRepository.save(product);
+            return response.getRows().get(0).getPrdtMstrNo();
 
-            return mstrNo;
 
         } catch (GreenApiException e) {
             throw e;
         } catch (Exception e) {
-            log.error("API 3번 호출 실패", e);
+            log.error("제품 마스터 번호 조회 실패(3번)", e);
             throw new GreenApiException(GreenApiErrorCode.ERROR99999);
         }
 
@@ -109,81 +121,40 @@ public class GreenService {
     }
 
     // 5번: 제품 성분 목록 조회
-    private void fetchProductIngredients(MstrNoDTO mstrNoDTO) {
-        Long id1 = mstrNoDTO.getProductId1();
-        Long id2 = mstrNoDTO.getProductId2();
-        String prdtMstrNo1 = mstrNoDTO.getPrdMstrNo1();
-        String prdtMstrNo2 = mstrNoDTO.getPrdMstrNo2();
-
+    private void fetchProductIngredients(Product product) {
         try {
-            Product product1 = productRepository.findById(id1)
-                    .orElseThrow(() -> new RuntimeException("Product1을 찾을 수 없습니다: " + id1));
-            Product product2 = productRepository.findById(id2)
-                    .orElseThrow(() -> new RuntimeException("Product2를 찾을 수 없습니다: " + id2));
-
-            String url1 = UriComponentsBuilder.fromHttpUrl(baseUrl)
+            String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
                     .queryParam("ServiceName", "chmstryProductCntnrIndtList")
                     .queryParam("AuthKey", authKey)
-                    .queryParam("prdtMstrNo", prdtMstrNo1)
+                    .queryParam("prdtMstrNo", product.getPrdMstrNo())
                     .build()
                     .toUriString();
 
-            String url2 = UriComponentsBuilder.fromHttpUrl(baseUrl)
-                    .queryParam("ServiceName", "chmstryProductCntnrIndtList")
-                    .queryParam("AuthKey", authKey)
-                    .queryParam("prdtMstrNo", prdtMstrNo2)
-                    .build()
-                    .toUriString();
 
-            String xmlResponse1 = restTemplate.getForObject(url1, String.class);
-            Green5ResponseDto response1 = xmlMapper.readValue(xmlResponse1, Green5ResponseDto.class);
-            String xmlResponse2 = restTemplate.getForObject(url2, String.class);
-            Green5ResponseDto response2 = xmlMapper.readValue(xmlResponse2, Green5ResponseDto.class);
+            String xmlResponse = restTemplate.getForObject(url, String.class);
+            Green5ResponseDto response = xmlMapper.readValue(xmlResponse, Green5ResponseDto.class);
 
-            GreenApiErrorCode errorCode1 = GreenApiErrorCode.fromCode(response1.getResultcode());
-            GreenApiErrorCode errorCode2 = GreenApiErrorCode.fromCode(response2.getResultcode());
-
-            if (!errorCode1.isSuccess()) {
-                throw new GreenApiException(errorCode1);
+            GreenApiErrorCode errorCode = GreenApiErrorCode.fromCode(response.getResultcode());
+            if (!errorCode.isSuccess()) {
+                throw new GreenApiException(errorCode);
             }
-            if (!errorCode2.isSuccess()) {
-                throw new GreenApiException(errorCode2);
-            }
+
 
             List<Ingredient> ingredients1 = new ArrayList<>();
-            if (response1.getRows() != null) {
-                for (Green5Row row : response1.getRows()) {
+            if (response.getRows() != null) {
+                for (Green5Row row : response.getRows()) {
                     String casNo = row.getCasNo();
 
                     if (casNo != null && !casNo.trim().isEmpty()) {
                         // 중복 체크
-                        if (!ingredientRepository.existsByProductAndCasNo(product1, casNo)) {
+                        if (!ingredientRepository.existsByProductAndCasNo(product, casNo)) {
                             Ingredient ingredient = new Ingredient();
                             ingredient.setCasNo(casNo);
-                            ingredient.setProduct(product1);
+                            ingredient.setProduct(product);
 
                             Ingredient saved = ingredientRepository.save(ingredient);
                             ingredients1.add(saved);
-                        }
-                    }
-                }
-            }
-
-            // Product2의 성분 저장
-            List<Ingredient> ingredients2 = new ArrayList<>();
-            if (response2.getRows() != null) {
-                for (Green5Row row : response2.getRows()) {
-                    String casNo = row.getCasNo();
-
-                    if (casNo != null && !casNo.trim().isEmpty()) {
-                        // 중복 체크
-                        if (!ingredientRepository.existsByProductAndCasNo(product2, casNo)) {
-                            Ingredient ingredient = new Ingredient();
-                            ingredient.setCasNo(casNo);
-                            ingredient.setProduct(product2);
-
-                            Ingredient saved = ingredientRepository.save(ingredient);
-                            ingredients2.add(saved);
+                            log.debug("성분 저장: CAS={}", casNo);
                         }
                     }
                 }
@@ -192,7 +163,7 @@ public class GreenService {
         } catch (GreenApiException e) {
             throw e;
         } catch (Exception e) {
-            log.error("API 5번 호출 실패", e);
+            log.error("제품 성분 조회 실패(5번)", e);
             throw new GreenApiException(GreenApiErrorCode.ERROR99999);
         }
     }

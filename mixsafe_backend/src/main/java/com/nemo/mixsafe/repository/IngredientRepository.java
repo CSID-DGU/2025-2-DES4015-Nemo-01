@@ -1,5 +1,6 @@
 package com.nemo.mixsafe.repository;
 
+import com.nemo.mixsafe.domain.DefaultSubstance;
 import com.nemo.mixsafe.domain.Ingredient;
 import com.nemo.mixsafe.domain.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,5 +12,7 @@ import java.util.List;
 public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
     boolean existsByProductAndCasNo(Product product, String casNo);
     Ingredient save(Ingredient ingredient);
+
     List<Ingredient> findByProduct(Product product);
+    List<Ingredient> findBySubstance(DefaultSubstance substance);
 }

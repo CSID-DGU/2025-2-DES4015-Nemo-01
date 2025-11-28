@@ -19,6 +19,10 @@ public class Ingredient {
     private String casNo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "productId", nullable = false)
+    @JoinColumn(name = "productId")
     private Product product;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "substanceId")
+    private DefaultSubstance substance;
 }
