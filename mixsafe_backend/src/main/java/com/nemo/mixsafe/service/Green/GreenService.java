@@ -56,18 +56,18 @@ public class GreenService {
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id2));
 
 
-        if (product1.getPrdtMstrNo() == null) {
+        if (product1.getPrdMstrNo() == null) {
             getMstrNo(product1);
         }
-        if(product2.getPrdtMstrNo() == null){
+        if(product2.getPrdMstrNo() == null){
             getMstrNo(product2);
         }
 
         return MstrNoDTO.builder()
                 .productId1(id1)
                 .productId2(id2)
-                .prdtMstrNo1(product1.getPrdtMstrNo())
-                .prdtMstrNo2(product2.getPrdtMstrNo())
+                .prdMstrNo1(product1.getPrdMstrNo())
+                .prdMstrNo2(product2.getPrdMstrNo())
                 .build();
 
     }
@@ -93,7 +93,7 @@ public class GreenService {
 
             String mstrNo = response1.getRows().get(0).getPrdtMstrNo();
 
-            product.setPrdtMstrNo(mstrNo);
+            product.setPrdMstrNo(mstrNo);
             productRepository.save(product);
 
             return mstrNo;
@@ -112,8 +112,8 @@ public class GreenService {
     private void fetchProductIngredients(MstrNoDTO mstrNoDTO) {
         Long id1 = mstrNoDTO.getProductId1();
         Long id2 = mstrNoDTO.getProductId2();
-        String prdtMstrNo1 = mstrNoDTO.getPrdtMstrNo1();
-        String prdtMstrNo2 = mstrNoDTO.getPrdtMstrNo2();
+        String prdtMstrNo1 = mstrNoDTO.getPrdMstrNo1();
+        String prdtMstrNo2 = mstrNoDTO.getPrdMstrNo2();
 
         try {
             Product product1 = productRepository.findById(id1)

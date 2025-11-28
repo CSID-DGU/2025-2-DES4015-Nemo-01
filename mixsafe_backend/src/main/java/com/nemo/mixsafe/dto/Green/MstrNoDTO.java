@@ -11,6 +11,6 @@ import lombok.Setter;
 public class MstrNoDTO {
     private Long productId1;
     private Long productId2;
-    private String prdtMstrNo1;
-    private String prdtMstrNo2;
+    private String prdMstrNo1;
+    private String prdMstrNo2;
 }

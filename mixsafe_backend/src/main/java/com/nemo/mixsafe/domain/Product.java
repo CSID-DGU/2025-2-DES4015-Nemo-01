@@ -21,7 +21,7 @@ public class Product {
     private String productName;
 
     @Column(nullable = true)
-    private String prdtMstrNo;
+    private String prdMstrNo;
 
     @Column(nullable = true)
     private String prdtarmCd;

@@ -12,13 +12,13 @@ public class Ingredient {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ingredient_id")
+    @Column(name = "ingredientId")
     private Long ingredientId;
 
-    @Column(name = "cas_no", nullable = false)
+    @Column(name = "casNo", nullable = false)
     private String casNo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
+    @JoinColumn(name = "productId", nullable = false)
     private Product product;
 }

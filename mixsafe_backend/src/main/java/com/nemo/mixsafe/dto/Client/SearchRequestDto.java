@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter
-@Setter
 @Builder
 @Schema(description = "제품명 검색 DTO")
 public class SearchRequestDto {

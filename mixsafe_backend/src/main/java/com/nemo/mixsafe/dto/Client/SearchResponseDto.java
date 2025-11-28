@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter
-@Setter
 @Builder
 @Schema(description = "검색 후 제품 반환 DTO")
 public class SearchResponseDto {
