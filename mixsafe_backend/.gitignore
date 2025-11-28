@@ -40,3 +40,5 @@ out/
 application-secret.yml
 application-local.yml
 application-prod.yml
+
+*.env
