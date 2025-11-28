@@ -21,7 +21,7 @@ public class SearchController {
     }
 
     @PostMapping("/mix")
-    public void mixProductResult(@RequestBody MixRequestDto requestDto){
-
+    public AiResultResponseDto mixProductResult(@RequestBody MixRequestDto requestDto) {
+        return searchService.analyzeMix(requestDto);
     }
 }

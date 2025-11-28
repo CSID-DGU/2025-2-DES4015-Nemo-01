@@ -40,7 +40,8 @@ public class GreenService {
 
     @Transactional
     public void getGreenResult(MixRequestDto requestDto) {
-        MstrNoDTO mstrNoDTO = fetchProductList(requestDto);
+
+        MstrNoDTO mstrNoDTO= fetchProductList(requestDto);
         fetchProductIngredients(mstrNoDTO);
     }
 
@@ -54,54 +55,48 @@ public class GreenService {
         Product product2 = productRepository.findById(id2)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id2));
 
-        try {
-            String url1 = UriComponentsBuilder.fromHttpUrl(baseUrl)
+
+        if (product1.getPrdtMstrNo() == null) {
+            getMstrNo(product1);
+        }
+        if(product2.getPrdtMstrNo() == null){
+            getMstrNo(product2);
+        }
+
+        return MstrNoDTO.builder()
+                .productId1(id1)
+                .productId2(id2)
+                .prdtMstrNo1(product1.getPrdtMstrNo())
+                .prdtMstrNo2(product2.getPrdtMstrNo())
+                .build();
+
+    }
+
+    private String getMstrNo(Product product) {
+        try{
+            String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
                     .queryParam("ServiceName", "chmstryProductList")
                     .queryParam("AuthKey", authKey)
-                    .queryParam("prdtarmCd", product1.getPrdtarmCd()) // 01: 위해우려제품
-                    .queryParam("prdtnmKor", product1.getProductName())
+                    .queryParam("prdtarmCd", product.getPrdtarmCd()) // 01: 위해우려제품
+                    .queryParam("prdtnmKor", product.getProductName())
                     .build()
                     .toUriString();
 
-            String url2 = UriComponentsBuilder.fromHttpUrl(baseUrl)
-                    .queryParam("ServiceName", "chmstryProductList")
-                    .queryParam("AuthKey", authKey)
-                    .queryParam("prdtarmCd", product2.getPrdtarmCd()) // 01: 위해우려제품
-                    .queryParam("prdtnmKor", product2.getProductName())
-                    .build()
-                    .toUriString();
+            String xmlResponse1 = restTemplate.getForObject(url, String.class);
 
-            String xmlResponse1 = restTemplate.getForObject(url1, String.class);
-            String xmlResponse2 = restTemplate.getForObject(url2, String.class);
             Green3ResponseDto response1 = xmlMapper.readValue(xmlResponse1, Green3ResponseDto.class);
-            Green3ResponseDto response2 = xmlMapper.readValue(xmlResponse2, Green3ResponseDto.class);
 
-
-            GreenApiErrorCode errorCode1 = GreenApiErrorCode.fromCode(response1.getResultcode());
-            GreenApiErrorCode errorCode2 = GreenApiErrorCode.fromCode(response2.getResultcode());
-
-            if (!errorCode1.isSuccess()) {
-                throw new GreenApiException(errorCode1);
-            }
-            if (!errorCode2.isSuccess()) {
-                throw new GreenApiException(errorCode2);
+            GreenApiErrorCode errorCode = GreenApiErrorCode.fromCode(response1.getResultcode());
+            if (!errorCode.isSuccess()) {
+                throw new GreenApiException(errorCode);
             }
 
-            String mstrNo1 = response1.getRows().get(0).getPrdtMstrNo();
-            String mstrNo2 = response1.getRows().get(0).getPrdtMstrNo();
+            String mstrNo = response1.getRows().get(0).getPrdtMstrNo();
 
-            product1.setPrdtMstrNo(mstrNo1);
-            product2.setPrdtMstrNo(mstrNo2);
-            productRepository.save(product1);
-            productRepository.save(product2);
+            product.setPrdtMstrNo(mstrNo);
+            productRepository.save(product);
 
-
-            return MstrNoDTO.builder()
-                    .productId1(id1)
-                    .productId2(id2)
-                    .prdtMstrNo1(mstrNo1)
-                    .prdtMstrNo2(mstrNo2)
-                    .build();
+            return mstrNo;
 
         } catch (GreenApiException e) {
             throw e;
@@ -109,6 +104,8 @@ public class GreenService {
             log.error("API 3번 호출 실패", e);
             throw new GreenApiException(GreenApiErrorCode.ERROR99999);
         }
+
+
     }
 
     // 5번: 제품 성분 목록 조회
