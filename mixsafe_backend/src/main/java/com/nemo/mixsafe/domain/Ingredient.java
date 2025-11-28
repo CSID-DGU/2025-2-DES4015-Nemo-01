@@ -25,4 +25,12 @@ public class Ingredient {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "substanceId")
     private DefaultSubstance substance;
+
+    @PrePersist
+    @PreUpdate
+    private void validateTarget() {
+        if (product == null && substance == null) {
+            throw new IllegalArgumentException("Ingredient는 product 또는 substance 중 하나는 반드시 있어야 합니다.");
+        }
+    }
 }
