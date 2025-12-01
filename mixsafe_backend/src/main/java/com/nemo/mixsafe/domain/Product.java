@@ -1,0 +1,31 @@
+package com.nemo.mixsafe.domain;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "product")
+public class Product {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "productId")
+    private Long productId;
+
+    @Column(name = "productName", nullable = false)
+    private String productName;
+
+    @Column(nullable = true)
+    private String prdMstrNo;
+
+    @Column(nullable = true)
+    private String prdtarmCd;
+
+    @Column(nullable = false)
+    private Boolean isDanger;
+}

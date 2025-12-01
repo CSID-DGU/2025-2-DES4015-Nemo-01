@@ -1,0 +1,33 @@
+# application.yml
+spring:
+  application:
+    name: mixsafe
+  profiles:
+    default: local
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    enabled: true
+
+  swagger-ui:
+    path: /swagger-ui
+    operationsSorter: method
+    tagsSorter: alpha
+
+green:
+  api:
+    base-url: https://ecolife.mcee.go.kr/openapi/TestSv
+    auth-key: ${ECOLIFE_AUTH_KEY}
+
+naver:
+  ocr:
+    invoke-url: ${NAVER_OCR_URL}
+    secret-key: ${NAVER_OCR_SECRET}
