@@ -6,10 +6,6 @@ import alertIcon from "../assets/Group.svg";
 import settingsIcon from "../assets/Shopping bag.svg";
 import mixsafeLogo from "../assets/MIXSAFE.svg";
 
-
-// ========================================
-// 🏠 메인 홈페이지
-// ========================================
 export default function HomePage({ onNavigate, selectedProducts, setSelectedProducts }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -86,30 +82,20 @@ export default function HomePage({ onNavigate, selectedProducts, setSelectedProd
             }}
           >
             {selectedProducts[0] ? (
-              <div style={{ textAlign: 'center', padding: '10px' }}>
-                <img
-                  src={selectedProducts[0].image}
-                  alt={selectedProducts[0].name}
-                  style={{
-                    width: '70px',
-                    height: '70px',
-                    objectFit: 'cover',
-                    borderRadius: '8px'
-                  }}
-                />
-                <div style={{
-                  fontSize: '11px',
-                  marginTop: '5px',
-                  color: '#0f9aff',
-                  fontWeight: '600'
-                }}>
-                  {selectedProducts[0].name}
-                </div>
-              </div>
+              <img
+                src={selectedProducts[0].image}
+                alt={selectedProducts[0].name}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: "10px"
+                }}
+              />
             ) : (
               <div style={{
-                fontSize: '40px',
-                color: '#9CD5FF'
+                fontSize: "40px",
+                color: "#9CD5FF"
               }}>+</div>
             )}
           </div>
@@ -132,31 +118,21 @@ export default function HomePage({ onNavigate, selectedProducts, setSelectedProd
               overflow: 'hidden'
             }}
           >
-            {selectedProducts[1] ? (
-              <div style={{ textAlign: 'center', padding: '10px' }}>
-                <img
-                  src={selectedProducts[1].image}
-                  alt={selectedProducts[1].name}
-                  style={{
-                    width: '70px',
-                    height: '70px',
-                    objectFit: 'cover',
-                    borderRadius: '8px'
-                  }}
-                />
-                <div style={{
-                  fontSize: '11px',
-                  marginTop: '5px',
-                  color: '#0f9aff',
-                  fontWeight: '600'
-                }}>
-                  {selectedProducts[1].name}
-                </div>
-              </div>
+            {selectedProducts[0] ? (
+              <img
+                src={selectedProducts[0].image}
+                alt={selectedProducts[0].name}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: "10px"
+                }}
+              />
             ) : (
               <div style={{
-                fontSize: '40px',
-                color: '#9CD5FF'
+                fontSize: "40px",
+                color: "#9CD5FF"
               }}>+</div>
             )}
           </div>
