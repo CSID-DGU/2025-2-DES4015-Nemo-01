@@ -24,7 +24,7 @@ springdoc:
 
 green:
   api:
-    base-url: https://ecolife.mcee.go.kr/openapi/TestSv
+    base-url: https://ecolife.mcee.go.kr/openapi/ServiceSvl
     auth-key: ${ECOLIFE_AUTH_KEY}
 
 naver:

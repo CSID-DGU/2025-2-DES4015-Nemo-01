@@ -89,21 +89,38 @@ public class GreenService {
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
                     .queryParam("ServiceName", "chmstryProductList")
                     .queryParam("AuthKey", authKey)
-                    .queryParam("prdtarmCd", product.getPrdtarmCd()) // 01: 위해우려제품
+                    .queryParam("prdtarmCd", "01") // 01: 위해우려제품
                     .queryParam("prdtnmKor", product.getProductName())
                     .build()
                     .toUriString();
+            log.info("[GREEN-3] 제품 마스터 번호 조회 요청 시작. productName={}, prdtarmCd={}",
+                    product.getProductName(), product.getPrdtarmCd());
+            log.debug("[GREEN-3] 요청 URL = {}", url);
 
             String xmlResponse = restTemplate.getForObject(url, String.class);
 
+
+            log.debug("[GREEN-3] 원본 XML 응답 일부 = {}",
+                    xmlResponse != null && xmlResponse.length() > 500
+                            ? xmlResponse.substring(0, 500) + "..."
+                            : xmlResponse);
+
+
             Green3ResponseDto response = xmlMapper.readValue(xmlResponse, Green3ResponseDto.class);
+
+            log.debug("[GREEN-3] 파싱 결과 resultcode={}, rowCount={}",
+                    response.getResultcode(),
+                    response.getRows() != null ? response.getRows().size() : 0);
 
             GreenApiErrorCode errorCode = GreenApiErrorCode.fromCode(response.getResultcode());
             if (!errorCode.isSuccess()) {
+                log.error("[GREEN-3] API resultcode 오류. code={} message={}",
+                        errorCode.getCode(), errorCode.getMessage());
                 throw new GreenApiException(errorCode);
             }
 
             if (response.getRows() == null || response.getRows().isEmpty()) {
+                log.warn("[GREEN-3] 제품 정보를 찾을 수 없음. productName={}", product.getProductName());
                 throw new RuntimeException("제품 정보를 찾을 수 없습니다: " + product.getProductName());
             }
 
@@ -113,7 +130,7 @@ public class GreenService {
         } catch (GreenApiException e) {
             throw e;
         } catch (Exception e) {
-            log.error("제품 마스터 번호 조회 실패(3번)", e);
+            log.error("[GREEN-3] 제품 마스터 번호 조회 실패 - 상세 에러: {}", e.getMessage(), e);
             throw new GreenApiException(GreenApiErrorCode.ERROR99999);
         }
 
@@ -124,7 +141,7 @@ public class GreenService {
     private void fetchProductIngredients(Product product) {
         try {
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
-                    .queryParam("ServiceName", "chmstryProductCntnrIndtList")
+                    .queryParam("ServiceName", "chmstryProductCntnIrdntList")
                     .queryParam("AuthKey", authKey)
                     .queryParam("prdtMstrNo", product.getPrdMstrNo())
                     .build()

@@ -26,7 +26,7 @@ public class AiService {
 
     private final RestTemplate restTemplate;
 
-    @Value("${ai.api.url:https://chemical-analyzer-v2.onrender.com}")
+    @Value("${ai.api.url:https://nemo-jisanhak-ver2.onrender.com/hybrid-analyze}")
     private String aiApiUrl;
 
     public AiResponseDto analyze(AiMultiRequestDto requestDto) {
