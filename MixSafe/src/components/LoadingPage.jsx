@@ -1,25 +1,52 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
+import { fetchMixResult } from "../hooks/mixApi";
+import logo from "../assets/MIXSAFE.svg";
 
 // ========================================
-// ⏳ 로딩 페이지
+// 로딩 페이지
 // ========================================
-export default function LoadingPage({ onNavigate }) {
+export default function LoadingPage({ onNavigate, selectedProducts, setMixResult }) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(timer);
-          setTimeout(() => onNavigate('result'), 500);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 200);
+    let timer;
+    
+    const fetchData = async () => {
+      try {
+        console.log("API 호출 시작:", selectedProducts);
+        
+        // API 호출
+        const result = await fetchMixResult(selectedProducts[0], selectedProducts[1]);
+        console.log("API 응답:", result);
+        
+        setMixResult(result);
+        
+        // 프로그레스바 애니메이션
+        timer = setInterval(() => {
+          setProgress(prev => {
+            if (prev >= 100) {
+              clearInterval(timer);
+              setTimeout(() => onNavigate('result'), 500);
+              return 100;
+            }
+            return prev + 10;
+          });
+        }, 150);
 
-    return () => clearInterval(timer);
-  }, [onNavigate]);
+      } catch (error) {
+        alert("분석 실패");
+        console.error(error);
+        onNavigate("home");
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [selectedProducts, onNavigate, setMixResult]);
 
   return (
     <div style={{
@@ -33,13 +60,7 @@ export default function LoadingPage({ onNavigate }) {
       alignItems: 'center',
       color: 'white'
     }}>
-      <h1 style={{
-        fontFamily: '"Oi", cursive',
-        fontSize: '32px',
-        marginBottom: '40px'
-      }}>
-        MIX SAFE
-      </h1>
+      <img src={logo} alt="logo" style={{ width: 180, marginBottom: 20 }} />
 
       <div style={{
         fontSize: '16px',

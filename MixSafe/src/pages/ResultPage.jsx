@@ -1,7 +1,23 @@
+import React from 'react';
 // ========================================
-// ✅ 결과 페이지
+// 결과 페이지
 // ========================================
-export default function ResultPage({ onNavigate, selectedProducts }) {
+export default function ResultPage({ onNavigate, selectedProducts, mixResult }) {
+
+  const status = mixResult?.status || "UNKNOWN";
+  const aiResult = mixResult?.aiResult || '분석 결과를 불러오는데 실패했습니다.';
+  const level = mixResult?.airResult?.startsWith("위험")
+  ? "danger"
+  : mixResult?.airResult?.startsWith("주의")
+  ? "warning"
+  : "safe";
+
+  const levelColor = {
+  danger: "#ff4d4d",
+  warning: "#ffb300",
+  safe: "#4caf50"
+}[level];
+
   return (
     <div style={{
       width: '403px',
@@ -75,26 +91,19 @@ export default function ResultPage({ onNavigate, selectedProducts }) {
           marginBottom: '20px',
           textAlign: 'left'
         }}>
-          <div style={{
-            fontSize: '18px',
-            fontWeight: '700',
-            marginBottom: '15px',
-            color: '#ff4444'
-          }}>
-            🚨 주의가 필요합니다!
+          <div style={{ color: levelColor, fontWeight: "700", fontSize: "18px" }}>
+            {level === "danger" && "🚨 위험!"}
+            {level === "warning" && "⚠️ 주의"}
+            {level === "safe" && "✅ 안전"}
           </div>
           <div style={{
             fontSize: '14px',
             lineHeight: '1.8',
             color: '#666'
           }}>
-            이 두 물질을 혼합하면 <strong>유독 가스가 발생</strong>할 수 있습니다.
-            <br /><br />
-            • 환기가 잘 되는 곳에서 사용하세요
-            <br />
-            • 절대 밀폐된 공간에서 혼합하지 마세요
-            <br />
-            • 어린이의 손이 닿지 않는 곳에 보관하세요
+            <div style={{ fontSize: "14px", lineHeight: "1.8", whiteSpace: "pre-wrap" }}>
+              {aiResult}
+            </div>
           </div>
         </div>
 

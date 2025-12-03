@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import SearchModal from '../components/SearchModal';
 import { PRODUCTS } from '../data/products';
@@ -11,17 +12,23 @@ export default function HomePage({ onNavigate, selectedProducts, setSelectedProd
   const [selectedSlot, setSelectedSlot] = useState(null);
 
   const handleBoxClick = (slotIndex) => {
+    console.log("Box clicked:", slotIndex);
     setSelectedSlot(slotIndex);
     setModalOpen(true);
   };
 
   const handleProductSelect = (product, slotIndex) => {
+    console.log("Product selected:", product, "Slot:", slotIndex);
+    if (slotIndex === null || slotIndex === undefined) return;
+    
     const newSelected = [...selectedProducts];
     newSelected[slotIndex] = product;
     setSelectedProducts(newSelected);
+    setModalOpen(false);
   };
 
   const handleSearch = () => {
+    console.log("Search clicked. Selected products:", selectedProducts);
     if (selectedProducts[0] && selectedProducts[1]) {
       onNavigate('loading');
     } else {
@@ -31,8 +38,6 @@ export default function HomePage({ onNavigate, selectedProducts, setSelectedProd
 
   return (
     <div style={{ width: '403px', margin: '0 auto', background: '#ffffff', minHeight: '100vh' }}>
-      {/* (전체 코드 그대로) */}
-      {/* 🔵 상단 파란 헤더 */}
       <header style={{
         background: '#0f9aff',
         padding: '90px 20px 80px',
@@ -118,10 +123,10 @@ export default function HomePage({ onNavigate, selectedProducts, setSelectedProd
               overflow: 'hidden'
             }}
           >
-            {selectedProducts[0] ? (
+            {selectedProducts[1] ? (
               <img
-                src={selectedProducts[0].image}
-                alt={selectedProducts[0].name}
+                src={selectedProducts[1].image}
+                alt={selectedProducts[1].name}
                 style={{
                   width: "100%",
                   height: "100%",

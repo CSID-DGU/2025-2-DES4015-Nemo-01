@@ -1,18 +1,82 @@
+import React from 'react';
 import { useState } from 'react';
 import { PRODUCTS } from '../data/products';
+import { searchProduct, searchSubstance } from "../hooks/mixApi";
 
 // ========================================
-// 🔍 검색 모달 컴포넌트
+// 검색 모달 컴포넌트
 // ========================================
 export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot }) {
-  const [searchText, setSearchText] = useState('');
+
+  console.log("SearchModal isOpen:", isOpen);
+
+  const [searchText, setSearchText] = useState("");
   const [showCamera, setShowCamera] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   if (!isOpen) return null;
 
   const filteredProducts = PRODUCTS.filter(product =>
     product.name.includes(searchText)
   );
+
+  const handleSearch = async () => {
+    if (!searchText.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+
+    try {
+      const [substanceResult, productResult] = await Promise.all([
+        searchSubstance(searchText),
+        searchProduct(searchText)
+      ]);
+
+      const results = [];
+
+      // ✅ substance도 prd
+      if (substanceResult) {
+        results.push({ ...substanceResult, source: 'prd' });
+      }
+
+      // ✅ API 제품은 무조건 prd
+      if (productResult) {
+        results.push({ ...productResult, source: 'prd' });
+      }
+
+      setSearchResults(results);
+    } catch (error) {
+      console.error('검색 오류:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const filteredLocalProducts = PRODUCTS.filter(product =>
+    product.name.includes(searchText)
+  );
+
+  // ✅ 표시할 리스트 결정
+  const displayProducts = (() => {
+    if (searchResults.length > 0) return searchResults;
+    if (filteredLocalProducts.length > 0) return filteredLocalProducts;
+
+    // ✅ 입력만 해도 선택 가능, prd 처리
+    if (searchText.trim()) {
+      return [{
+        id: `temp-${Date.now()}`,
+        name: searchText,
+        image: 'https://via.placeholder.com/100',
+        source: 'prd'
+      }];
+    }
+
+    return [];
+  })();
 
   return (
     <div style={{
@@ -30,11 +94,12 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
       <div style={{
         background: 'white',
         width: '90%',
-        maxWidth: '400px',
+        maxWidth: '360px',
+        minHeight: '300px',
         borderRadius: '20px',
         padding: '20px',
-        maxHeight: '80vh',
-        overflow: 'auto'
+        boxSizing: 'border-box',
+        position: 'relative'
       }}>
         <div style={{
           display: 'flex',
@@ -63,8 +128,16 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
                 color: 'white',
                 fontSize: '16px'
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearch();
+              }}
             />
-            <div style={{ color: 'white', fontSize: '20px' }}>🔍</div>
+            <button
+              onClick={handleSearch}
+              style={{ background: "none", border: "none", color: "white", fontSize: "20px", cursor: "pointer" }}
+            >
+              🔍
+            </button>
           </div>
 
           <button
@@ -77,10 +150,7 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
               background: showCamera ? '#0f9aff' : 'white',
               color: showCamera ? 'white' : '#0f9aff',
               fontSize: '24px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              cursor: 'pointer'
             }}
           >
             📷
@@ -104,65 +174,48 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
 
         {searchText && (
           <div style={{ marginBottom: '15px', color: '#666', fontSize: '14px' }}>
-            "{searchText}" 검색 결과: {filteredProducts.length}개
+            "{searchText}" 검색 결과: {displayProducts.length}개
           </div>
         )}
 
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px'
-        }}>
-          {filteredProducts.map(product => (
-            <div
-              key={product.id}
-              onClick={() => {
-                onSelect(product, selectedSlot);
-                onClose();
-                setSearchText('');
-              }}
-              style={{
-                padding: '15px',
-                background: '#f0f9ff',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                border: '2px solid transparent',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.borderColor = '#0f9aff';
-                e.currentTarget.style.background = '#e6f5ff';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.borderColor = 'transparent';
-                e.currentTarget.style.background = '#f0f9ff';
-              }}
-            >
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '15px'
-              }}>
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  style={{
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '8px',
-                    objectFit: 'cover'
-                  }}
-                />
-                <div style={{
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#414141'
-                }}>
-                  {product.name}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {displayProducts.map((product) => {
+            const isDefault = PRODUCTS.some(p => p.id === product.id);
+
+            return (
+              <div
+                key={product.id}
+                onClick={() => {
+                  onSelect({
+                    id: product.productId ?? product.id,
+                    name: product.productName ?? product.name,
+                    image: product.image || 'https://via.placeholder.com/100',
+                    source: isDefault ? "default" : "prd"
+                  }, selectedSlot);
+
+                  onClose();
+                  setSearchText('');
+                }}
+                style={{
+                  padding: '15px',
+                  background: '#f0f9ff',
+                  borderRadius: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                  <img
+                    src={product.image || 'https://via.placeholder.com/100'}
+                    alt={product.name}
+                    style={{ width: '50px', height: '50px', borderRadius: '8px' }}
+                  />
+                  <div style={{ fontWeight: '600', color: '#414141' }}>
+                    {product.name}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <button
@@ -175,11 +228,9 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
             marginTop: '20px',
             padding: '12px',
             background: '#e0e0e0',
-            border: 'none',
             borderRadius: '12px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: '600'
+            border: 'none',
+            cursor: 'pointer'
           }}
         >
           닫기
