@@ -87,22 +87,34 @@ export default function HomePage({ onNavigate, selectedProducts, setSelectedProd
             }}
           >
             {selectedProducts[0] ? (
-              <img
-                src={selectedProducts[0].image}
-                alt={selectedProducts[0].name}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  borderRadius: "10px"
-                }}
-              />
-            ) : (
-              <div style={{
-                fontSize: "40px",
-                color: "#9CD5FF"
-              }}>+</div>
-            )}
+              selectedProducts[0].image ? (
+                <img
+                  src={selectedProducts[0].image}
+                  alt={selectedProducts[0].name}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    borderRadius: "10px"
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null
+            ) : null}
+            <div style={{
+              fontSize: "40px",
+              color: "#9CD5FF",
+              display: (selectedProducts[0] && selectedProducts[0].image) ? 'none' : 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%'
+            }}>
+              {selectedProducts[0] && !selectedProducts[0].image ? '📦' : '+'}
+            </div>
           </div>
 
           <div style={{ fontSize: '35px', color: 'white' }}>+</div>
@@ -124,22 +136,34 @@ export default function HomePage({ onNavigate, selectedProducts, setSelectedProd
             }}
           >
             {selectedProducts[1] ? (
-              <img
-                src={selectedProducts[1].image}
-                alt={selectedProducts[1].name}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  borderRadius: "10px"
-                }}
-              />
-            ) : (
-              <div style={{
-                fontSize: "40px",
-                color: "#9CD5FF"
-              }}>+</div>
-            )}
+              selectedProducts[1].image ? (
+                <img
+                  src={selectedProducts[1].image}
+                  alt={selectedProducts[1].name}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    borderRadius: "10px"
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null
+            ) : null}
+            <div style={{
+              fontSize: "40px",
+              color: "#9CD5FF",
+              display: (selectedProducts[1] && selectedProducts[1].image) ? 'none' : 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%'
+            }}>
+              {selectedProducts[1] && !selectedProducts[1].image ? '📦' : '+'}
+            </div>
           </div>
         </div>
 
@@ -265,19 +289,16 @@ export default function HomePage({ onNavigate, selectedProducts, setSelectedProd
         borderRadius: '12px 12px 0 0',
         boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
       }}>
-        {/* 알림 */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
           <img src={alertIcon} alt="알림" style={{ width: '26px', height: '26px' }} />
           <span style={{ fontSize: '13px', color: '#0f9aff' }}>알림</span>
         </div>
 
-        {/* 홈 */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
           <img src={homeIcon} alt="홈" style={{ width: '28px', height: '28px' }} />
           <span style={{ fontSize: '13px', color: '#0f9aff' }}>홈</span>
         </div>
 
-        {/* 설정 */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
           <img src={settingsIcon} alt="설정" style={{ width: '26px', height: '26px' }} />
           <span style={{ fontSize: '13px', color: '#0f9aff' }}>설정</span>

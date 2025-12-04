@@ -1,22 +1,67 @@
 import React from 'react';
+import mixsafeLogo from "../assets/MIXSAFE.svg";
+
 // ========================================
 // 결과 페이지
 // ========================================
 export default function ResultPage({ onNavigate, selectedProducts, mixResult }) {
-
   const status = mixResult?.status || "UNKNOWN";
   const aiResult = mixResult?.aiResult || '분석 결과를 불러오는데 실패했습니다.';
-  const level = mixResult?.airResult?.startsWith("위험")
-  ? "danger"
-  : mixResult?.airResult?.startsWith("주의")
-  ? "warning"
-  : "safe";
+  
+  const getDangerLevel = (text) => {
+    if (!text) return "safe";
+    
+    const prefix = text.substring(0, 20).toLowerCase();
+    
+    // "위험:" 으로 시작하는 경우
+    if (text.trim().startsWith("위험:") || prefix.includes("danger:")) {
+      return "danger";
+    }
+    
+    // "주의:" 으로 시작하는 경우
+    if (text.trim().startsWith("주의:") || prefix.includes("warning:") || prefix.includes("caution:")) {
+      return "warning";
+    }
+    
+    // "안전" 으로 시작하거나, "위험한 조합이 발견되지 않았습니다" 포함
+    if (text.trim().startsWith("안전") || 
+        text.includes("안전해요") ||
+        text.includes("위험한 조합이 발견되지 않았습니다") ||
+        text.includes("걱정 없이 사용하셔도 좋습니다") ||
+        prefix.includes("safe:")) {
+      return "safe";
+    }
+    
+    // 추가 안전 판단: "발견되지 않았습니다" 문구 확인
+    if (text.includes("특별한 위험이나 주의사항은 발견되지 않았습니다")) {
+      return "safe";
+    }
+    
+    // 기본값: 안전
+    return "safe";
+  };
 
-  const levelColor = {
-  danger: "#ff4d4d",
-  warning: "#ffb300",
-  safe: "#4caf50"
-}[level];
+  const level = getDangerLevel(aiResult);
+
+  const levelConfig = {
+    danger: {
+      color: "#ff4d4d",
+      icon: "🚨",
+      label: "위험!"
+    },
+    warning: {
+      color: "#ffb300",
+      icon: "⚠️",
+      label: "주의"
+    },
+    safe: {
+      color: "#4caf50",
+      icon: "✅",
+      label: "안전"
+    }
+  };
+
+  const currentLevel = levelConfig[level];
 
   return (
     <div style={{
@@ -44,20 +89,23 @@ export default function ResultPage({ onNavigate, selectedProducts, mixResult }) 
         textAlign: 'center',
         marginTop: '40px'
       }}>
-        <h1 style={{
-          fontFamily: '"Oi", cursive',
-          fontSize: '28px',
-          marginBottom: '20px'
-        }}>
-          MIX SAFE
-        </h1>
+        <img
+          src={mixsafeLogo}
+          alt="MixSafe Logo"
+          style={{
+            width: "220px",
+            height: "auto",
+            display: "block",
+            margin: "0 auto 20px",
+          }}
+        />
 
         <div style={{
           fontSize: '24px',
           fontWeight: '700',
           marginBottom: '30px'
         }}>
-          ⚠️ 혼합 결과
+          {currentLevel.icon} 혼합 결과
         </div>
 
         <div style={{
@@ -91,19 +139,26 @@ export default function ResultPage({ onNavigate, selectedProducts, mixResult }) 
           marginBottom: '20px',
           textAlign: 'left'
         }}>
-          <div style={{ color: levelColor, fontWeight: "700", fontSize: "18px" }}>
-            {level === "danger" && "🚨 위험!"}
-            {level === "warning" && "⚠️ 주의"}
-            {level === "safe" && "✅ 안전"}
+          <div style={{ 
+            color: currentLevel.color, 
+            fontWeight: "700", 
+            fontSize: "20px",
+            marginBottom: "15px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+          }}>
+            <span>{currentLevel.icon}</span>
+            <span>{currentLevel.label}</span>
           </div>
+          
           <div style={{
             fontSize: '14px',
             lineHeight: '1.8',
-            color: '#666'
+            color: '#666',
+            whiteSpace: 'pre-wrap'
           }}>
-            <div style={{ fontSize: "14px", lineHeight: "1.8", whiteSpace: "pre-wrap" }}>
-              {aiResult}
-            </div>
+            {aiResult}
           </div>
         </div>
 
