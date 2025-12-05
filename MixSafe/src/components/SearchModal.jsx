@@ -1,13 +1,16 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { PRODUCTS } from '../data/products';
-import { searchProduct, searchSubstance } from "../hooks/mixApi";
+import { searchProduct, searchSubstance, searchProductByOcr } from "../hooks/mixApi";
 
-export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot }) {
+export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot, productsWithIds }) {
   const [searchText, setSearchText] = useState("");
   const [showCamera, setShowCamera] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const localProducts = productsWithIds || PRODUCTS;
 
   if (!isOpen) return null;
 
@@ -20,7 +23,6 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
     setIsSearching(true);
 
     try {
-      // ✅ 물질 검색과 제품 검색 병렬 실행 (에러 무시)
       const [substanceResult, productResult] = await Promise.allSettled([
         searchSubstance(searchText),
         searchProduct(searchText)
@@ -28,7 +30,6 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
 
       const results = [];
 
-      // ✅ 물질 검색 결과 (fulfilled인 경우만)
       if (substanceResult.status === 'fulfilled' && substanceResult.value) {
         results.push({
           id: substanceResult.value.substanceId,
@@ -38,7 +39,6 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
         });
       }
 
-      // ✅ 제품 검색 결과 (fulfilled인 경우만)
       if (productResult.status === 'fulfilled' && productResult.value) {
         results.push({
           id: productResult.value.productId,
@@ -64,19 +64,75 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
     }
   };
 
-  // ✅ 로컬 제품 필터링 (PRODUCTS 배열에서)
-  const filteredLocalProducts = searchText.trim() 
-    ? PRODUCTS.filter(product => product.name.includes(searchText))
-    : PRODUCTS; // 검색어가 없으면 전체 표시
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  // ✅ 표시할 리스트 결정
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    // 파일 크기 체크 (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('이미지 크기가 너무 큽니다.\n5MB 이하의 이미지를 사용해주세요.');
+      return;
+    }
+
+    setIsOcrProcessing(true);
+
+    try {
+      console.log("📸 OCR 처리 시작:", file.name);
+      
+      const result = await searchProductByOcr(file);
+      
+      if (result && result.productId && result.productName) {
+        const ocrResults = [{
+          id: result.productId,
+          name: result.productName,
+          image: result.image || null,
+          source: 'prd'
+        }];
+        
+        console.log("✅ OCR 결과:", ocrResults);
+        setSearchResults(ocrResults);
+        alert(`"${result.productName}" 제품을 찾았습니다!`);
+      } else {
+        console.warn("OCR 응답:", result);
+        alert('제품을 인식하지 못했습니다.\n제품명이 명확하게 보이는 이미지를 사용해주세요.');
+      }
+    } catch (error) {
+      console.error('OCR 처리 오류:', error);
+      
+      // 에러 메시지 세분화
+      let errorMessage = '이미지 인식에 실패했습니다.';
+      
+      if (error.message.includes('500')) {
+        errorMessage = '서버에서 이미지를 처리하지 못했습니다.\n다른 이미지를 시도하거나 잠시 후 다시 시도해주세요.';
+      } else if (error.message.includes('네트워크') || error.message.includes('network')) {
+        errorMessage = '네트워크 연결을 확인해주세요.';
+      } else if (error.message.includes('크기')) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsOcrProcessing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const filteredLocalProducts = searchText.trim() 
+    ? localProducts.filter(product => product.name.includes(searchText))
+    : localProducts;
+
   const displayProducts = (() => {
-    // API 검색 결과가 있으면 우선 표시
     if (searchResults.length > 0) {
       return searchResults;
     }
-    
-    // 로컬 제품 표시 (검색어 필터링 적용)
     return filteredLocalProducts;
   })();
 
@@ -106,7 +162,6 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {/* 검색 입력 영역 */}
         <div style={{
           display: 'flex',
           gap: '10px',
@@ -126,7 +181,6 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
               value={searchText}
               onChange={(e) => {
                 setSearchText(e.target.value);
-                // 입력 중에는 API 검색 결과 초기화
                 setSearchResults([]);
               }}
               placeholder="제품명을 입력하세요"
@@ -159,39 +213,50 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
           </div>
 
           <button
-            onClick={() => setShowCamera(!showCamera)}
+            onClick={() => {
+              if (fileInputRef.current) {
+                fileInputRef.current.click();
+              }
+            }}
+            disabled={isOcrProcessing}
             style={{
               width: '50px',
               height: '50px',
               borderRadius: '50%',
               border: '2px solid #0f9aff',
-              background: showCamera ? '#0f9aff' : 'white',
-              color: showCamera ? 'white' : '#0f9aff',
+              background: isOcrProcessing ? '#ccc' : 'white',
+              color: isOcrProcessing ? '#666' : '#0f9aff',
               fontSize: '24px',
-              cursor: 'pointer'
+              cursor: isOcrProcessing ? 'wait' : 'pointer'
             }}
           >
-            📷
+            {isOcrProcessing ? '⏳' : '📷'}
           </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            style={{ display: 'none' }}
+          />
         </div>
 
-        {/* 카메라 안내 */}
-        {showCamera && (
+        {isOcrProcessing && (
           <div style={{
             marginBottom: '20px',
             padding: '20px',
-            background: '#f0f9ff',
+            background: '#e3f2fd',
             borderRadius: '12px',
             textAlign: 'center'
           }}>
             <p style={{ margin: 0, color: '#0f9aff', fontWeight: '600' }}>
-              📸 카메라로 제품을 스캔하세요
+              🔍 이미지를 분석하는 중...
             </p>
-            <small style={{ color: '#999' }}>OCR 기능이 곧 추가될 예정입니다</small>
+            <small style={{ color: '#666' }}>잠시만 기다려주세요</small>
           </div>
         )}
 
-        {/* 검색 결과 안내 */}
         <div style={{ marginBottom: '15px', color: '#666', fontSize: '14px' }}>
           {searchResults.length > 0 ? (
             <div style={{ color: '#0f9aff', fontWeight: '600' }}>
@@ -208,7 +273,6 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
           )}
         </div>
 
-        {/* 제품 목록 */}
         <div style={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -266,11 +330,13 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
                       }}
                       onError={(e) => {
                         e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
+                        const placeholder = e.target.parentElement.querySelector('.placeholder-icon');
+                        if (placeholder) placeholder.style.display = 'flex';
                       }}
                     />
                   ) : null}
                   <div 
+                    className="placeholder-icon"
                     style={{ 
                       width: '50px', 
                       height: '50px', 
@@ -298,7 +364,6 @@ export default function SearchModal({ isOpen, onClose, onSelect, selectedSlot })
           )}
         </div>
 
-        {/* 닫기 버튼 */}
         <button
           onClick={() => {
             onClose();

@@ -1,5 +1,4 @@
 import React from 'react';
-import mixsafeLogo from "../assets/MIXSAFE.svg";
 
 // ========================================
 // 결과 페이지
@@ -8,37 +7,29 @@ export default function ResultPage({ onNavigate, selectedProducts, mixResult }) 
   const status = mixResult?.status || "UNKNOWN";
   const aiResult = mixResult?.aiResult || '분석 결과를 불러오는데 실패했습니다.';
   
+  // ✅ AI 응답 시작 부분으로 위험도 판단
   const getDangerLevel = (text) => {
-    if (!text) return "safe";
+    if (!text) return "result";
     
-    const prefix = text.substring(0, 20).toLowerCase();
+    const trimmedText = text.trim();
     
-    // "위험:" 으로 시작하는 경우
-    if (text.trim().startsWith("위험:") || prefix.includes("danger:")) {
+    // "안전:" 으로 시작
+    if (trimmedText.startsWith("안전:")) {
+      return "safe";
+    }
+    
+    // "위험:" 으로 시작
+    if (trimmedText.startsWith("위험:")) {
       return "danger";
     }
     
-    // "주의:" 으로 시작하는 경우
-    if (text.trim().startsWith("주의:") || prefix.includes("warning:") || prefix.includes("caution:")) {
+    // "주의:" 으로 시작
+    if (trimmedText.startsWith("주의:")) {
       return "warning";
     }
     
-    // "안전" 으로 시작하거나, "위험한 조합이 발견되지 않았습니다" 포함
-    if (text.trim().startsWith("안전") || 
-        text.includes("안전해요") ||
-        text.includes("위험한 조합이 발견되지 않았습니다") ||
-        text.includes("걱정 없이 사용하셔도 좋습니다") ||
-        prefix.includes("safe:")) {
-      return "safe";
-    }
-    
-    // 추가 안전 판단: "발견되지 않았습니다" 문구 확인
-    if (text.includes("특별한 위험이나 주의사항은 발견되지 않았습니다")) {
-      return "safe";
-    }
-    
-    // 기본값: 안전
-    return "safe";
+    // 그 외 모든 경우
+    return "result";
   };
 
   const level = getDangerLevel(aiResult);
@@ -58,6 +49,11 @@ export default function ResultPage({ onNavigate, selectedProducts, mixResult }) 
       color: "#4caf50",
       icon: "✅",
       label: "안전"
+    },
+    result: {
+      color: "#0f9aff",
+      icon: "➡️",
+      label: "결과"
     }
   };
 
@@ -89,16 +85,13 @@ export default function ResultPage({ onNavigate, selectedProducts, mixResult }) 
         textAlign: 'center',
         marginTop: '40px'
       }}>
-        <img
-          src={mixsafeLogo}
-          alt="MixSafe Logo"
-          style={{
-            width: "220px",
-            height: "auto",
-            display: "block",
-            margin: "0 auto 20px",
-          }}
-        />
+        <h1 style={{
+          fontFamily: '"Oi", cursive',
+          fontSize: '28px',
+          marginBottom: '20px'
+        }}>
+          MIX SAFE
+        </h1>
 
         <div style={{
           fontSize: '24px',

@@ -15,7 +15,6 @@ export default function LoadingPage({ onNavigate, selectedProducts, setMixResult
     
     const fetchData = async () => {
       try {
-        // ✅ 유효성 검증
         if (!selectedProducts || selectedProducts.length < 2) {
           throw new Error("두 개의 제품을 선택해주세요");
         }
@@ -24,16 +23,14 @@ export default function LoadingPage({ onNavigate, selectedProducts, setMixResult
           throw new Error("제품 정보가 없습니다");
         }
 
-        // ✅ ID 유효성 검증
         if (!selectedProducts[0].id || !selectedProducts[1].id) {
           throw new Error("제품 ID가 없습니다. 검색 결과에서 제품을 선택해주세요.");
         }
 
-        console.log("🚀 API 호출 시작:", selectedProducts);
+        console.log("API 호출 시작:", selectedProducts);
         
-        // API 호출
         const result = await fetchMixResult(selectedProducts[0], selectedProducts[1]);
-        console.log("✅ API 응답:", result);
+        console.log("API 응답:", result);
         
         setMixResult(result);
         
@@ -50,7 +47,6 @@ export default function LoadingPage({ onNavigate, selectedProducts, setMixResult
         }, 150);
 
       } catch (error) {
-        console.error("❌ 분석 실패:", error);
         setError(error.message || "분석에 실패했습니다");
         
         setTimeout(() => {
