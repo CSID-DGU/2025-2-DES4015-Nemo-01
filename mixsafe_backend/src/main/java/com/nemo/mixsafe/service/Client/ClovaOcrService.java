@@ -25,6 +25,25 @@ public class ClovaOcrService {
     private String secretKey;
 
     public String extractTextFromImage(String base64Image) throws IOException {
+        // ============================
+        // 1) Base64 prefix 제거 (중요)
+        // ============================
+        String original = base64Image; // format 추출용 저장
+
+        // data:image/png;base64,xxxxx → xxxxx 로 잘라내기
+        if (base64Image.contains(",")) {
+            base64Image = base64Image.substring(base64Image.indexOf(",") + 1);
+        }
+
+        // ============================
+        // 2) format 자동 추출
+        // ============================
+        String format = "jpg"; // fallback 값
+
+        // data:image/png;base64 → png 추출
+        if (original.startsWith("data:image/")) {
+            format = original.substring(original.indexOf("/") + 1, original.indexOf(";"));
+        }
 
         URL url = new URL(invokeUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -43,7 +62,7 @@ public class ClovaOcrService {
         JsonArray images = new JsonArray();
         JsonObject image = new JsonObject();
 
-        image.addProperty("format", "jpg");
+        image.addProperty("format", format);
         image.addProperty("name", "sample_image");
         image.addProperty("data", base64Image);
 
