@@ -18,9 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -139,43 +137,59 @@ public class GreenService {
 
     // 5번: 제품 성분 목록 조회
     private void fetchProductIngredients(Product product) {
+
+        int pageNum = 1;
+        int totalCount;
+        Set<String> savedCasNos = new HashSet<>();
+
         try {
-            String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
-                    .queryParam("ServiceName", "chmstryProductCntnIrdntList")
-                    .queryParam("AuthKey", authKey)
-                    .queryParam("prdtMstrNo", product.getPrdMstrNo())
-                    .build()
-                    .toUriString();
+            do {
+                String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                        .queryParam("ServiceName", "chmstryProductCntnIrdntList")
+                        .queryParam("AuthKey", authKey)
+                        .queryParam("prdtMstrNo", product.getPrdMstrNo())
+                        .queryParam("pagenum", pageNum)
+                        .queryParam("pagesize", 50)
+                        .build()
+                        .toUriString();
 
 
-            String xmlResponse = restTemplate.getForObject(url, String.class);
-            Green5ResponseDto response = xmlMapper.readValue(xmlResponse, Green5ResponseDto.class);
+                String xmlResponse = restTemplate.getForObject(url, String.class);
+                Green5ResponseDto response = xmlMapper.readValue(xmlResponse, Green5ResponseDto.class);
 
-            GreenApiErrorCode errorCode = GreenApiErrorCode.fromCode(response.getResultcode());
-            if (!errorCode.isSuccess()) {
-                throw new GreenApiException(errorCode);
-            }
+                GreenApiErrorCode errorCode = GreenApiErrorCode.fromCode(response.getResultcode());
+                if (!errorCode.isSuccess()) {
+                    throw new GreenApiException(errorCode);
+                }
 
+                totalCount = response.getCount() != null ? response.getCount() : 0;
 
-            List<Ingredient> ingredients1 = new ArrayList<>();
-            if (response.getRows() != null) {
-                for (Green5Row row : response.getRows()) {
-                    String casNo = row.getCasNo();
+                int actualRowCount = 0;
 
-                    if (casNo != null && !casNo.trim().isEmpty()) {
-                        // 중복 체크
-                        if (!ingredientRepository.existsByProductAndCasNo(product, casNo)) {
-                            Ingredient ingredient = new Ingredient();
-                            ingredient.setCasNo(casNo);
-                            ingredient.setProduct(product);
+                if (response.getRows() != null) {
+                    for (Green5Row row : response.getRows()) {
+                        String casNo = row.getCasNo();
 
-                            Ingredient saved = ingredientRepository.save(ingredient);
-                            ingredients1.add(saved);
-                            log.debug("성분 저장: CAS={}", casNo);
+                        if (casNo != null && !casNo.trim().isEmpty()) {
+                            // 중복 체크
+                            if (!savedCasNos.contains(casNo)) {
+                                Ingredient ingredient = new Ingredient();
+                                ingredient.setCasNo(casNo);
+                                ingredient.setProduct(product);
+                                ingredientRepository.save(ingredient);
+                                savedCasNos.add(casNo);
+
+                                log.info("[GREEN-5] 성분 저장 완료: CAS={}", casNo);
+                            } else {
+                                log.debug("[GREEN-5] 중복 성분 스킵: CAS={}", casNo);
+                            }
                         }
                     }
                 }
-            }
+
+
+                pageNum++;
+            } while ((pageNum - 1) * 50 < totalCount);
 
         } catch (GreenApiException e) {
             throw e;
@@ -183,5 +197,6 @@ public class GreenService {
             log.error("제품 성분 조회 실패(5번)", e);
             throw new GreenApiException(GreenApiErrorCode.ERROR99999);
         }
+
     }
 }
