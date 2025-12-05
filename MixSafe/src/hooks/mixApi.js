@@ -97,3 +97,43 @@ export async function searchSubstance(substanceName) {
     return null;
   }
 }
+
+
+// OCR 이미지 검색 API - Base64 인코딩 방식
+export async function searchProductByOcr(imageFile) {
+  try {
+    // 파일 크기 체크 (5MB 제한)
+    const maxSize = 5 * 1024 * 1024;
+    if (imageFile.size > maxSize) {
+      throw new Error('이미지 크기가 너무 큽니다. 5MB 이하의 이미지를 사용해주세요.');
+    }
+
+    // 이미지를 Base64로 변환
+    const base64Image = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(imageFile);
+    });
+
+    const response = await fetch(`${API_BASE_URL}/api/search/ocr-image`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        base64Image: base64Image
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OCR 검색 실패: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("OCR 오류:", error);
+    throw error;
+  }
+}
