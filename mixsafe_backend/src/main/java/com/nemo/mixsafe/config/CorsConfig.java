@@ -15,8 +15,11 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // 🔥 프론트 주소
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        //  프론트 주소
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "https://mixsafe-front.vercel.app"
+        ));
 
         // 허용할 HTTP 메서드
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
