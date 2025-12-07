@@ -183,73 +183,122 @@ public class SearchService {
     /** OCR 이미지 검색 */
     public SearchResponseDto searchProductByOcrImage(OcrImageRequestDto dto) throws IOException {
 
+        // 1) OCR 수행
         String ocrText = clovaOcrService.extractTextFromImage(dto.getBase64Image());
-        System.out.println("OCR TEXT: " + ocrText);
+        log.info("OCR TEXT: {}", ocrText);
 
-        String keyword = extractKeyword(ocrText);
-        System.out.println("최종 검색 키워드: " + keyword);
+        // 2) 전체 제품 중 가장 유사한 제품 찾기
+        Product best = findBestMatchProduct(ocrText);
 
-        if (keyword.isBlank()) {
-            throw new IllegalArgumentException("OCR 결과에서 검색 가능한 키워드를 찾지 못했습니다.");
+        if (best == null) {
+            throw new IllegalArgumentException("OCR 결과와 일치하는 제품을 찾지 못했습니다.");
         }
 
-        List<Product> results = searchRepository.findByProductNameContaining(keyword);
-
-        if (results.isEmpty()) {
-            throw new IllegalArgumentException("OCR 인식 결과에 해당하는 제품이 없습니다.");
-        }
-
-        Product product = results.get(0);
+        log.info("최종 선택된 제품: {} (id={})", best.getProductName(), best.getProductId());
 
         return SearchResponseDto.builder()
-                .productId(product.getProductId())
-                .productName(product.getProductName())
+                .productId(best.getProductId())
+                .productName(best.getProductName())
                 .build();
     }
 
+    private String preprocess(String text) {
+        if (text == null) return "";
+        return text.replaceAll("[^가-힣0-9 ]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
 
-    /**
-     * OCR 텍스트에서 최적의 제품명 후보를 얻는다 (한글 제품명 우선)
-     */
-    private String extractKeyword(String text) {
 
-        if (text == null || text.isBlank()) return "";
+    private double similarity(String a, String b) {
 
-        // 1) 한글만 추출
-        StringBuilder onlyKorean = new StringBuilder();
-        for (char c : text.toCharArray()) {
-            if (c >= '가' && c <= '힣') {
-                onlyKorean.append(c);
-            } else {
-                onlyKorean.append(" ");
-            }
-        }
+        if (a == null || b == null) return 0.0;
 
-        String[] words = onlyKorean.toString().trim().split("\\s+");
+        a = a.replace(" ", "");
+        b = b.replace(" ", "");
 
-        // 2) 제품명 우선 키워드 목록
-        String[] productKeywords = {
-                "구연산","베이킹소다","식초","세제","세탁세제","세정제",
-                "클리너","탈취제","유연제","천연세제"
-        };
+        int max = 0;
 
-        // 2-1) OCR 결과에서 먼저 등장한 제품명 키워드 있으면 즉시 반환
-        for (String w : words) {
-            for (String pk : productKeywords) {
-                if (w.contains(pk) || pk.contains(w)) {
-                    return pk;
+        for (int i = 0; i < a.length(); i++) {
+            for (int j = i + 1; j <= a.length(); j++) {
+                String sub = a.substring(i, j);
+                if (b.contains(sub)) {
+                    max = Math.max(max, sub.length());
                 }
             }
         }
 
-        // 3) 없으면 가장 긴 단어 반환
-        String best = "";
-        for (String w : words) {
-            if (w.length() > best.length()) {
-                best = w;
+        return (double) max / Math.max(a.length(), b.length());
+    }
+
+
+    private Product findBestMatchProduct(String ocrText) {
+
+        String clean = preprocess(ocrText);
+
+        List<Product> allProducts = productRepository.findAll();
+
+        Product best = null;
+        double bestScore = 0.0;
+
+        for (Product p : allProducts) {
+            double score = similarity(clean, preprocess(p.getProductName()));
+
+            log.info("유사도 비교: OCR='{}', 제품명='{}', score={}",
+                    clean, p.getProductName(), score);
+
+            if (score > bestScore) {
+                bestScore = score;
+                best = p;
             }
         }
 
         return best;
     }
+
+//
+//    /**
+//     * OCR 텍스트에서 최적의 제품명 후보를 얻는다 (한글 제품명 우선)
+//     */
+//    private String extractKeyword(String text) {
+//
+//        if (text == null || text.isBlank()) return "";
+//
+//        // 1) 한글만 추출
+//        StringBuilder onlyKorean = new StringBuilder();
+//        for (char c : text.toCharArray()) {
+//            if (c >= '가' && c <= '힣') {
+//                onlyKorean.append(c);
+//            } else {
+//                onlyKorean.append(" ");
+//            }
+//        }
+//
+//        String[] words = onlyKorean.toString().trim().split("\\s+");
+//
+//        // 2) 제품명 우선 키워드 목록
+//        String[] productKeywords = {
+//                "구연산","베이킹소다","식초","세제","세탁세제","세정제",
+//                "클리너","탈취제","유연제","천연세제"
+//        };
+//
+//        // 2-1) OCR 결과에서 먼저 등장한 제품명 키워드 있으면 즉시 반환
+//        for (String w : words) {
+//            for (String pk : productKeywords) {
+//                if (w.contains(pk) || pk.contains(w)) {
+//                    return pk;
+//                }
+//            }
+//        }
+//
+//        // 3) 없으면 가장 긴 단어 반환
+//        String best = "";
+//        for (String w : words) {
+//            if (w.length() > best.length()) {
+//                best = w;
+//            }
+//        }
+//
+//        return best;
+//    }
 }
