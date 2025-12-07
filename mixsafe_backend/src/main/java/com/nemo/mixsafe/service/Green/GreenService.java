@@ -155,6 +155,10 @@ public class GreenService {
 
 
                 String xmlResponse = restTemplate.getForObject(url, String.class);
+                log.debug("[GREEN-5] XML 응답 (처음 500자): {}",
+                        xmlResponse != null && xmlResponse.length() > 500
+                                ? xmlResponse.substring(0, 500) + "..."
+                                : xmlResponse);
                 Green5ResponseDto response = xmlMapper.readValue(xmlResponse, Green5ResponseDto.class);
 
                 GreenApiErrorCode errorCode = GreenApiErrorCode.fromCode(response.getResultcode());
