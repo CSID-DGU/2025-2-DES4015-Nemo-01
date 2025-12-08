@@ -313,4 +313,8 @@ export default function HomePage({ onNavigate, selectedProducts, setSelectedProd
       />
     </div>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> dev/front
