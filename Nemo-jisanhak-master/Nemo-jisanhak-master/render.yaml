@@ -1,0 +1,15 @@
+services:
+  # FastAPI 백엔드 서비스 (Docker)
+  - type: web
+    name: chemical-analyzer-api
+    env: docker
+    region: oregon
+    plan: free
+    branch: master
+    envVars:
+      - key: AI_API_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PORT
+        value: 8000
