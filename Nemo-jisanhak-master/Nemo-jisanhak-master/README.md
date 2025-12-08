@@ -56,7 +56,7 @@ curl -X POST "https://nemo-jisanhak-6lu8.onrender.com/hybrid-analyze" \
 - 중복 제거 및 구체적 조건 명시
 - 안전 사용법 제시
 
-### 3. 안전 정보 링크 (NEW!)
+### 3. 안전 정보 링크
 - 특정 화학물질 조합에 대한 사고예방 기사
 - 각 화학물질의 MSDS(물질안전보건자료) 링크
 - KOSHA, 환경부 등 공식 자료
@@ -106,8 +106,6 @@ python backend_with_hf.py
 
 ---
 
-## 🧪 테스트
-
 ### 간단한 테스트
 ```bash
 python test_api_multiple.py
@@ -126,21 +124,21 @@ Content-Type: application/json
 
 ---
 
-## 📊 API 엔드포인트
+## API 엔드포인트
 
 ### 1. Health Check
 ```
 GET /
 ```
 
-### 2. Simple Analyze (빠름, 규칙만)
+### 2. Simple Analyze (규칙만 의존)
 ```
 POST /simple-analyze
 ```
 - 응답 시간: ~30-60초
 - CAMEO 규칙 분석만 제공
 
-### 3. Hybrid Analyze (느림, AI 포함) ⭐ 권장
+### 3. Hybrid Analyze (AI 포함)
 ```
 POST /hybrid-analyze
 ```
@@ -189,7 +187,7 @@ print(data['simple_response']['message'])
 
 ---
 
-## 📁 프로젝트 구조
+## 프로젝트 구조
 
 ```
 Nemo-jisanhak/
@@ -207,7 +205,7 @@ Nemo-jisanhak/
 
 ## 🔧 주요 설정
 
-### 타임아웃 설정 (중요!)
+### 타임아웃 설정
 API 응답 시간이 길기 때문에 클라이언트에서 반드시 타임아웃을 설정해야 합니다:
 - `/simple-analyze`: 최소 120초 (2분)
 - `/hybrid-analyze`: 최소 300초 (5분)
@@ -221,42 +219,26 @@ Render 무료 플랜 사용 시 첫 요청은 30-60초 추가 소요됩니다.
 
 ---
 
-## 🌟 주요 업데이트
+## 주요 업데이트
 
 ### v2.1.0 (2025-01-06)
-- ✅ `safety_links` 필드 추가 (MSDS, 공식 자료 링크)
-- ✅ Gemini 프롬프트 개선 (중복 제거, 구체적 조건 명시, 안전 사용법)
-- ✅ 백엔드 개발자용 통합 가이드 추가
+-  `safety_links` 필드 추가 (MSDS, 공식 자료 링크)
+-  Gemini 프롬프트 개선 (중복 제거, 구체적 조건 명시, 안전 사용법)
+-  백엔드 개발자용 통합 가이드 추가
 
 ### v2.0.0 (2025-01-06)
-- ✅ Hugging Face Spaces 연동 (Qwen2-1.5B)
-- ✅ Gemini 2.5-flash 한국어 번역
-- ✅ `simple_response` 필드 추가 (백엔드 사용 편의성)
+-  Hugging Face Spaces 연동 (Qwen2-1.5B)
+-  Gemini 2.5-flash 한국어 번역
+-  `simple_response` 필드 추가 (백엔드 사용 편의성)
 
 ### v1.0.0
-- ✅ CAMEO 크롤링 기반 규칙 분석
+-  CAMEO 크롤링 기반 규칙 분석
 
----
 
-## 📄 라이선스
-
-MIT License
-
----
-
-## 🤝 기여하기
-
-이슈 및 PR은 언제나 환영합니다!
-
-- **GitHub Issues**: https://github.com/lemonminyoung/Nemo-jisanhak/issues
-- **Pull Requests**: https://github.com/lemonminyoung/Nemo-jisanhak/pulls
-
----
-
-## 📧 문의
+## 문의
 
 백엔드 통합 관련 문의는 GitHub Issues에 남겨주세요.
 
 ---
 
-**⚠️ 주의사항**: 이 API는 교육 및 일반 안전 정보 제공 목적입니다. 산업용 또는 전문적인 화학 안전 결정에는 반드시 전문가의 검토가 필요합니다.
+**주의사항**: 이 API는 교육 및 일반 안전 정보 제공 목적입니다. 산업용 또는 전문적인 화학 안전 결정에는 반드시 전문가의 검토가 필요합니다.
