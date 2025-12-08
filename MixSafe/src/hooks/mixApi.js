@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://13.209.163.252";
+const API_BASE_URL = "https://yeonwoo.shop";
 
 // 혼합 결과 API
 export async function fetchMixResult(product1, product2) {

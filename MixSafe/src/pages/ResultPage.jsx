@@ -1,4 +1,5 @@
 import React from 'react';
+import mixsafeLogo from "../assets/MIXSAFE.svg";
 
 // ========================================
 // 결과 페이지
@@ -85,13 +86,16 @@ export default function ResultPage({ onNavigate, selectedProducts, mixResult }) 
         textAlign: 'center',
         marginTop: '40px'
       }}>
-        <h1 style={{
-          fontFamily: '"Oi", cursive',
-          fontSize: '28px',
-          marginBottom: '20px'
-        }}>
-          MIX SAFE
-        </h1>
+        <img 
+          src={mixsafeLogo}
+          alt="MixSafe Logo"
+          style={{
+            width: "250px",
+            height: "auto",
+            display: "block",
+            margin: "0 auto 20px"
+          }}
+        />
 
         <div style={{
           fontSize: '24px',

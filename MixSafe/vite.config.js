@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://13.209.163.252',
+        target: 'https://yeonwoo.shop',
         changeOrigin: true,
         secure: false,
       }
