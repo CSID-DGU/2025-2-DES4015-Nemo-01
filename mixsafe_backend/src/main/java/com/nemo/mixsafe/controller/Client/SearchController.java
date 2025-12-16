@@ -87,4 +87,6 @@ public class SearchController {
         return searchService.searchProductByOcrImage(dto);
     }
 
+
+
 }
