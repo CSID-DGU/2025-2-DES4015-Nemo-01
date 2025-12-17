@@ -148,8 +148,8 @@ public class GreenService {
                         .queryParam("ServiceName", "chmstryProductCntnIrdntList")
                         .queryParam("AuthKey", authKey)
                         .queryParam("prdtMstrNo", product.getPrdMstrNo())
-                        .queryParam("pagenum", pageNum)
-                        .queryParam("pagesize", 50)
+                        .queryParam("PageNum", pageNum)
+                        .queryParam("PageCount", 3)
                         .build()
                         .toUriString();
 
@@ -168,32 +168,44 @@ public class GreenService {
 
                 totalCount = response.getCount() != null ? response.getCount() : 0;
 
-                int actualRowCount = 0;
-
                 if (response.getRows() != null) {
                     for (Green5Row row : response.getRows()) {
+
+
                         String casNo = row.getCasNo();
+                        if (casNo == null) continue;
 
-                        if (casNo != null && !casNo.trim().isEmpty()) {
-                            // 중복 체크
-                            if (!savedCasNos.contains(casNo)) {
-                                Ingredient ingredient = new Ingredient();
-                                ingredient.setCasNo(casNo);
-                                ingredient.setProduct(product);
-                                ingredientRepository.save(ingredient);
-                                savedCasNos.add(casNo);
+                        casNo = casNo.trim();
+                        if (casNo.isEmpty()) continue;
 
-                                log.info("[GREEN-5] 성분 저장 완료: CAS={}", casNo);
-                            } else {
-                                log.debug("[GREEN-5] 중복 성분 스킵: CAS={}", casNo);
-                            }
+
+                        if (!savedCasNos.add(casNo)) {
+                            log.debug("[GREEN-5] (메모리) 중복 성분 스킵: CAS={}", casNo);
+                            continue;
                         }
+
+
+                        if (ingredientRepository.existsByProductAndCasNo(product, casNo)) {
+                            log.debug("[GREEN-5] (DB) 이미 존재하여 스킵: productId={}, CAS={}",
+                                    product.getProductId(), casNo);
+                            continue;
+                        }
+
+
+                        Ingredient ingredient = new Ingredient();
+                        ingredient.setCasNo(casNo);
+                        ingredient.setProduct(product);
+                        ingredientRepository.save(ingredient);
+
+                        log.info("[GREEN-5] 성분 저장 완료: productId={}, CAS={}",
+                                product.getProductId(), casNo);
+
                     }
                 }
 
 
                 pageNum++;
-            } while ((pageNum - 1) * 50 < totalCount);
+            } while ((pageNum - 1) * 3 < totalCount);
 
         } catch (GreenApiException e) {
             throw e;
