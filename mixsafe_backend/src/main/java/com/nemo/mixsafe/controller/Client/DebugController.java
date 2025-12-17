@@ -33,6 +33,44 @@ public class DebugController {
     @Value("${green.api.auth-key}")
     private String authKey;
 
+
+    @GetMapping(value = "/raw/green3", produces = MediaType.APPLICATION_XML_VALUE)
+    public ResponseEntity<String> rawGreen3(
+            @RequestParam String prdtnmKor,
+            @RequestParam(defaultValue = "01") String prdtarmCd
+    ) {
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .queryParam("ServiceName", "chmstryProductList")
+                .queryParam("AuthKey", authKey)
+                .queryParam("prdtarmCd", prdtarmCd)
+                .queryParam("prdtnmKor", prdtnmKor)
+                .queryParam("PageNum", 1)
+                .queryParam("PageCount", 5)
+                .build()
+                .toUriString();
+
+        String xmlResponse = restTemplate.getForObject(url, String.class);
+        return ResponseEntity.ok(xmlResponse);
+    }
+
+    @GetMapping(value = "/raw/green5", produces = MediaType.APPLICATION_XML_VALUE)
+    public ResponseEntity<String> rawGreen5(
+            @RequestParam String prdtMstrNo,
+            @RequestParam(defaultValue = "1") int pagenum,
+            @RequestParam(defaultValue = "5") int pagesize
+    ) {
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .queryParam("ServiceName", "chmstryProductCntnIrdntList")
+                .queryParam("AuthKey", authKey)
+                .queryParam("prdtMstrNo", prdtMstrNo)
+                .build()
+                .toUriString();
+
+        String xmlResponse = restTemplate.getForObject(url, String.class);
+        return ResponseEntity.ok(xmlResponse);
+    }
+
+
     /**
      * 초록누리 5번 API (제품 성분 목록) – 상위 5개만 조회
      *
@@ -53,7 +91,7 @@ public class DebugController {
                     // ⭐ 핵심: 5개까지만
                     .queryParam("PageNum", 1)
                     .queryParam("PageCount", 5)
-                    .build(true)
+                    .build()
                     .toUriString();
 
             log.info("[GREEN-3-DEBUG] 요청 URL = {}", url);
@@ -100,7 +138,7 @@ public class DebugController {
                     .queryParam("prdtnmKor", prdtnmKor)
                     .queryParam("PageNum", 1)
                     .queryParam("PageCount", 5)
-                    .build(true)
+                    .build()
                     .toUriString();
 
             String xmlResponse = restTemplate.getForObject(url, String.class);
@@ -134,9 +172,9 @@ public class DebugController {
                     .queryParam("ServiceName", "chmstryProductCntnIrdntList")
                     .queryParam("AuthKey", authKey)
                     .queryParam("prdtMstrNo", prdtMstrNo)
-                    .queryParam("pagenum", 1)
-                    .queryParam("pagesize", 5)   // ⭐ 핵심: 5개만
-                    .build(true)
+                    .queryParam("PageNum", 1)
+                    .queryParam("PageCount", 5)   // ⭐ 핵심: 5개만
+                    .build()
                     .toUriString();
 
             log.info("[GREEN-5-DEBUG] 요청 URL = {}", url);
